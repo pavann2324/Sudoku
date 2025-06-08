@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Validator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif; /* Clean, modern sans-serif for body */
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right bottom, #4CAF50, #2E7D32); /* Green gradient for a calm, logical feel */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        .container {
+            max-width: 700px;
+            background: rgba(255, 255, 255, 0.98); /* Near-white, slightly transparent background */
+            padding: 40px; /* Increased padding */
+            border-radius: 20px; /* More rounded corners */
+            box-shadow: 0 15px 45px rgba(0, 0, 0, 0.25); /* Deeper, softer shadow */
+            text-align: center;
+            backdrop-filter: blur(8px); /* Frosted glass effect */
+            border: 1px solid rgba(255, 255, 255, 0.4); /* Subtle white border */
+        }
+        h1 {
+            font-family: 'Quicksand', sans-serif; /* Soft, readable font for heading */
+            text-align: center;
+            color: #1B5E20; /* Darker green for the title */
+            margin-bottom: 25px;
+            font-weight: 700;
+            font-size: 3em; /* Larger title */
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        p {
+            color: #555;
+            margin-bottom: 25px;
+            line-height: 1.6;
+            font-size: 1.1em;
+        }
+        textarea {
+            width: calc(100% - 24px); /* Adjust width for padding + border */
+            height: 200px; /* Taller textarea */
+            margin-bottom: 25px;
+            font-size: 1.05em;
+            padding: 12px;
+            border: 1px solid #ccc; /* Light grey border */
+            border-radius: 10px; /* More rounded */
+            resize: vertical; /* Allow vertical resizing only */
+            background-color: #fcfcfc; /* Very light background */
+            color: #333;
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08); /* Inner shadow for depth */
+            transition: all 0.3s ease;
+        }
+        textarea:focus {
+            border-color: #4CAF50; /* Green focus border */
+            box-shadow: 0 0 12px rgba(76, 175, 80, 0.4); /* Green glow on focus */
+            outline: none;
+        }
+        button {
+            background-color: #4CAF50; /* Primary green button */
+            color: white;
+            padding: 15px 30px; /* Larger button */
+            border: none;
+            border-radius: 12px; /* More rounded */
+            cursor: pointer;
+            font-size: 1.2em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3); /* Green button shadow */
+        }
+        button:hover {
+            background-color: #388E3C; /* Darker green on hover */
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4); /* Enhanced shadow on hover */
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 10px rgba(76, 175, 80, 0.2);
+        }
+        .output {
+            margin-top: 30px;
+            font-size: 1.4em;
+            color: #1B5E20; /* Dark green for output text */
+            background-color: #E8F5E9; /* Very light green background for output */
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #C8E6C9; /* Light green border */
+            min-height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 0 1px 5px rgba(0, 0, 0, 0.05); /* Subtle inner shadow */
+            font-weight: 500;
+        }
+        .output.error {
+            color: #D32F2F; /* Dark red for errors */
+            background-color: #FFEBEE; /* Light red background for error */
+            border: 1px solid #FFCDD2; /* Red border */
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sudoku Validator</h1>
+        <p>Enter a 9x9 Sudoku board (rows separated by new lines, numbers separated by spaces):</p>
+        <textarea id="sudokuInput" placeholder="Example:\n5 3 0 0 7 0 0 0 0\n6 0 0 1 9 5 0 0 0\n0 9 8 0 0 0 0 6 0\n8 0 0 0 6 0 0 0 3\n4 0 0 8 0 3 0 0 1\n7 0 0 0 2 0 0 0 6\n0 6 0 0 0 0 2 8 0\n0 0 0 4 1 9 0 0 5\n0 0 0 0 8 0 0 7 9"></textarea>
+        <button onclick="validateSudoku()">Validate</button>
+        <div id="output" class="output"></div>
+    </div>
+
+    <script>
+        function validateSudoku() {
+            const input = document.getElementById("sudokuInput").value.trim();
+            // Changed split(",") to split("\n") for row separation based on placeholder example
+            const rows = input.split("\n").map(row => row.trim().split(/\s+/).map(Number));
+            const outputElement = document.getElementById("output");
+            outputElement.classList.remove('error'); // Clear previous error state
+
+            if (!isValidBoard(rows)) {
+                outputElement.innerHTML = `Invalid board. Ensure it is a 9x9 grid with digits between 0-9. Each row on a new line.`;
+                outputElement.classList.add('error');
+                return;
+            }
+
+            const isValid = validateStandardSudoku(rows) && validateCustomZones(rows);
+            outputElement.innerHTML = isValid
+                ? "The Sudoku board is valid."
+                : "The Sudoku board is invalid.";
+            if (!isValid) {
+                outputElement.classList.add('error');
+            }
+        }
+
+        function isValidBoard(board) {
+            if (!Array.isArray(board) || board.length !== 9) return false;
+            return board.every(row =>
+                Array.isArray(row) &&
+                row.length === 9 &&
+                row.every(cell => Number.isInteger(cell) && cell >= 0 && cell <= 9)
+            );
+        }
+
+        function validateStandardSudoku(board) {
+            // Check rows and columns
+            for (let i = 0; i < 9; i++) {
+                const rowSet = new Set();
+                const colSet = new Set();
+                for (let j = 0; j < 9; j++) {
+                    const rowValue = board[i][j];
+                    const colValue = board[j][i];
+
+                    if (rowValue !== 0) {
+                        if (rowSet.has(rowValue)) return false;
+                        rowSet.add(rowValue);
+                    }
+                    if (colValue !== 0) {
+                        if (colSet.has(colValue)) return false;
+                        colSet.add(colValue);
+                    }
+                }
+            }
+
+            // Check 3x3 sub-grids (boxes)
+            for (let row = 0; row < 9; row += 3) {
+                for (let col = 0; col < 9; col += 3) {
+                    const boxSet = new Set();
+                    for (let i = 0; i < 3; i++) {
+                        for (let j = 0; j < 3; j++) {
+                            const value = board[row + i][col + j];
+                            if (value !== 0) {
+                                if (boxSet.has(value)) return false;
+                                boxSet.add(value);
+                            }
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+
+        function validateCustomZones(board) {
+            // These are the three 3x3 blocks typically found along the main diagonal,
+            // which are also standard Sudoku sub-grids, but defined explicitly here.
+            const customZones = [
+                // Top-left 3x3 block
+                [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]],
+                // Middle 3x3 block
+                [[3, 3], [3, 4], [3, 5], [4, 3], [4, 4], [4, 5], [5, 3], [5, 4], [5, 5]],
+                // Bottom-right 3x3 block
+                [[6, 6], [6, 7], [6, 8], [7, 6], [7, 7], [7, 8], [8, 6], [8, 7], [8, 8]]
+            ];
+
+            for (const zone of customZones) {
+                const zoneSet = new Set();
+                for (const [row, col] of zone) {
+                    const value = board[row][col];
+                    if (value !== 0) {
+                        if (zoneSet.has(value)) return false;
+                        zoneSet.add(value);
+                    }
+                }
+            }
+            return true;
+        }
+    </script>
+</body>
+</html>
